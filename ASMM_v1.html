@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Artificial Shared Mental Models</title>
+        <script src="jspsych/jspsych.js"></script>
+        <script src="jspsych/plugins/jspsych-html-keyboard-response.js"></script>
+        <script src="jspsych/plugins/jspsych-html-button-response.js"></script>
+        <script src="jspsych/plugins/jspsych-audio-keyboard-response.js"></script>
+        <script src="jspsych/plugins/jspsych-image-button-response.js"></script>
+        <script src="jspsych/plugins/jspsych-instructions.js"></script>
+        <script src="jspsych/plugins/jspsych-consent.js"></script>
+        <script src="js/trial_info_high_abstraction.js"></script>
+        <script src="js/trial_info_medium_abstraction.js"></script>
+        <script src="js/trial_info_low_abstraction.js"></script>
+        <link href="jspsych/css/jspsych.css" rel="stylesheet">
+    </head>
+    <body></body>
+    <script>
+
+        var timeline = [];
+
+        var repeat_prac = [];
+
+        // Randomnly puts people in the high, medium, or low abstraction condition
+        var version = jsPsych.randomization.sampleWithoutReplacement([1,2,3],1)[0];
+        console.log('version: ', version)
+
+        var trial_info;
+        if (version == 1) {
+            trial_info = trial_info_high_abstraction;
+            console.log('hi1')
+        } else if (version == 2) {
+            trial_info = trial_info_medium_abstraction;
+            console.log('hi2')
+        } else if (version == 3) {
+            trial_info = trial_info_low_abstraction;
+            console.log('hi3')
+        }
+
+        // create list of all png files for preloading
+        var all_visual = [];
+        for (var i=0; i<trial_info.length; i++) {
+            all_visual.push(trial_info[i].target_visual);
+        }
+
+        // TODO: Consent form
+        var consent = {
+            type: 'consent',
+            pages: [
+                '<p style="font-size: 38px;"><b>Consent Form</b></p>'+
+                '<p>Only persons located in the US may participate in this study. You are being asked to be a volunteer in a research study.</p>'+
+                '<p>The purpose of this study is to understand how Shared Mental Models impact task performance in teams of humans and artificially intelligent agents. The series of tasks will take <b>approximately 30 minutes to complete</b>. The information you give in the study will be handled confidentially. Personal information about you will not be published or made available to any third party in any form. Your name will <b>not</b> be used in any report (pseudonyms such as ‘Participant X’ will be used) and we will be careful to ensure that no identifiable patterns in your actions or questionnaire responses (including demographic information such as your experience) are released in a way that would allow for any outsider to guess your identity. The risks involved are no greater than those involved in daily activities. There are no direct benefits to you for participating in this research study.<p>'+
+                '<p>The study may help us understand better understand the dynamics of human-AI teaming. There is no cost to you. <b>All participants will be paid at a rate of $10/ hour</b>. We will comply with any applicable laws and regulations regarding confidentiality. To make sure that this research is being carried out in the proper way, the Georgia Institute of Technology IRB may review study records. The Office of Human Research Protections may also look at study records.</p>'+
+                '<p>If you have questions about the research, call or write Dr. Karen Feigh at (404) 894-0199, Montgomery Knight Building, Room 419, Georgia Institute of Technology, 270 Ferst Drive, Atlanta GA 30332-0150. If you have any questions about your rights as a research subject, you may contact Ms. Melanie Clark, Georgia Institute of Technology at (404) 894-6942. Thank you for participating in this study.</p>'
+            ],
+            show_clickable_nav: true,
+            post_trial_gap: 300
+        };
+        timeline.push(consent)
+
+        
+        var instructions = {
+            type: 'instructions',
+            pages: [
+                '<p>In this task, you will see a visualualization of a GPS signal confirmation exercise.</p>'+
+                '<p>You should press the button corresponding to the most plausible answer.</p>'+
+                '<p>Click the "Next" button to start.</p>'
+            ],
+            show_clickable_nav: true,
+            post_trial_gap: 500
+        };
+        timeline.push(instructions)
+
+        // Will leave this in for now
+        var fixation = {
+            type: 'html-keyboard-response',
+            stimulus: '<span style="font-size:40px;">+</span>',
+            choices: jsPsych.NO_KEYS,
+            trial_duration: 500,
+            data: {
+                trial_part: 'fixation', 
+                task_part: jsPsych.timelineVariable('task_part')
+            }
+        };
+        timeline.push(fixation)
+
+
+        var target = {
+            type: 'image-button-response',
+            stimulus: trial_info[0].target_visual,
+            choices: ['<3', '3','4','5','>5'],
+            prompt: "<p>How many satellites are online?</p>"
+        };
+        timeline.push(target)
+
+
+        jsPsych.init({
+            timeline: timeline,
+            // need to check if this is a command
+            preload_visual: all_visual,
+            show_preload_progress_bar: true,
+            use_webaudio: false,
+            on_finish: function() {
+                jsPsych.data.displayData();
+            }
+        })
+
+    </script>
+</html>
