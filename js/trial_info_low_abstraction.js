@@ -7,4 +7,12 @@ var trial_info_low_abstraction = [
         condition: "low",
         task_part: "gps"
     },
+    {
+        target: "weather-low",
+        probe: "What is the nearest distance to a major weather occurance?",
+        correct_response: "3",
+        target_visual: "png/weather-low.png",
+        condition: "low",
+        task_part: "weather"
+    },
 ];
