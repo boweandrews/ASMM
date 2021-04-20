@@ -9,6 +9,7 @@
         <script src="jspsych/plugins/jspsych-image-button-response.js"></script>
         <script src="jspsych/plugins/jspsych-instructions.js"></script>
         <script src="jspsych/plugins/jspsych-consent.js"></script>
+        <script src="jspsych/plugins/jspsych-trial-of-trials.js"></script>
         <script src="js/trial_info_high_abstraction.js"></script>
         <script src="js/trial_info_medium_abstraction.js"></script>
         <script src="js/trial_info_low_abstraction.js"></script>
@@ -21,20 +22,20 @@
 
         var repeat_prac = [];
 
+        var time_step = 0;
+
+        var abort = false;
+
         // Randomnly puts people in the high, medium, or low abstraction condition
         var version = jsPsych.randomization.sampleWithoutReplacement([1,2,3],1)[0];
-        console.log('version: ', version)
 
         var trial_info;
         if (version == 1) {
             trial_info = trial_info_high_abstraction;
-            console.log('hi1')
         } else if (version == 2) {
             trial_info = trial_info_medium_abstraction;
-            console.log('hi2')
         } else if (version == 3) {
             trial_info = trial_info_low_abstraction;
-            console.log('hi3')
         }
 
         // create list of all png files for preloading
@@ -56,20 +57,22 @@
             show_clickable_nav: true,
             post_trial_gap: 300
         };
-        timeline.push(consent)
+        //timeline.push(consent)
 
         
-        var instructions = {
+        var initial_eval_instructions = {
             type: 'instructions',
             pages: [
-                '<p>In this task, you will see a visualualization of a GPS signal confirmation exercise.</p>'+
-                '<p>You should press the button corresponding to the most plausible answer.</p>'+
+                '<p>In this task, you will perform an evaluation of the world state.</p>'+
+                '<p>When you have selected your answer for each sub-evaluation, press continue if you are ready to proceed.</p>'+
+                '<p>If you feel the need to cancel this planning iteration, you may do so at any time by clicking the red <style color:red;>Abort</style> button in the top right corner.</p>'+
                 '<p>Click the "Next" button to start.</p>'
             ],
             show_clickable_nav: true,
-            post_trial_gap: 500
+            post_trial_gap: 500,
+            allow_backward: false
         };
-        timeline.push(instructions)
+        //timeline.push(initial_eval_instructions)
 
         // Will leave this in for now
         var fixation = {
@@ -82,17 +85,81 @@
                 task_part: jsPsych.timelineVariable('task_part')
             }
         };
-        timeline.push(fixation)
+        //timeline.push(fixation)
 
 
-        var target = {
+        var gps_trial = {
             type: 'image-button-response',
             stimulus: trial_info[0].target_visual,
             choices: ['<3', '3','4','5','>5'],
-            prompt: "<p>How many satellites are online?</p>"
+            prompt: "<p>"+trial_info[0].probe+"</p>",
+            button_html: '<button class="jspsych-btn">%choice%</button>'
         };
-        timeline.push(target)
 
+        var weather_trial = {
+            type: 'image-button-response',
+            stimulus: trial_info[1].target_visual,
+            choices: ['<10km', '10-20km','20-30km','30-40km','>50km'],
+            prompt:  "<p>"+trial_info[1].probe+"</p>",
+            button_html: '<button class="jspsych-btn">%choice%</button>'
+        }
+
+        var initial_evaluation = {
+            type: 'trial-of-trials',
+            trial1: gps_trial,
+            trial2: weather_trial,
+            show_clickable_nav: true,
+            data: {
+                abort: false,
+                gps_response: [],
+                weather_response: []
+            },
+            on_finish: function(data) {
+                abort = data.view_history[data.view_history.length-1].abort
+                if (!abort) {
+                    gps_response = data.view_history[data.view_history.length-1].gps_response;
+                    weather_response = data.view_history[data.view_history.length-1].weather_response;
+                }
+            }
+        }
+
+        var initial_eval_procedure = {
+            timeline: [fixation, initial_evaluation],
+            randomize_order: false
+        };
+
+        var repeat_initial_eval_message = {
+            type: 'html-button-response',
+            stimulus: '<p>You aborted the initial evaluation.</p>'+
+                      '<p>The world state has been updated, please reevaluate.</p>',
+            choices: ['Next']
+        };
+
+        var initial_eval_conditional = {
+            timeline: [repeat_initial_eval_message],
+            conditional_function: function() {
+                console.log(abort)
+                return abort
+            }
+        }
+
+        var instructions_prac_loop = {
+            timeline: [initial_eval_procedure, initial_eval_conditional],
+            loop_function: function() {
+                return abort
+            }
+        }
+        timeline.push(initial_eval_instructions);
+        timeline.push(instructions_prac_loop);
+
+        var querry_page = {
+            type: 'html-button-response',
+            stimulus: '<p>Congratulations! You have completed the initial evaluation.</p>'+
+                      '<p>Select "Querry" to auto-generate some potential landing trajectories.</p>',
+            choices: ['Querry'],
+            button_html: '<button class="jspsych-btn" style="background-color: green; border-radius: 50%; font-size: 24px; color:white;">%choice%</button>'
+        }
+        timeline.push(querry_page)
 
         jsPsych.init({
             timeline: timeline,
